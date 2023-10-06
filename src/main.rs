@@ -1,13 +1,14 @@
-mod database;
-mod routes;
+use axum::{Router, routing::{post}};
 
-#[macro_use]
-extern crate rocket;
+#[path = "routes/auth.rs"] mod auth;
 
-#[launch]
-async fn rocket() -> _ {
-    database::connect()
+#[tokio::main]
+async fn main() {
+    let app = Router::new()
+        .route("/auth/register", post(auth::register));
+
+    axum::Server::bind(&"0.0.0.0:3000".parse().unwrap())
+        .serve(app.into_make_service())
         .await
-        .expect("Failed to connect to MongoDB");
-    rocket::build().mount("/auth", routes![routes::login])
+        .unwrap();
 }
