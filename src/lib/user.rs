@@ -17,8 +17,10 @@ pub struct User {
     pub role: String,
 }
 
-pub async fn create_user(db: &Database, user: User) -> Result<(), mongodb::error::Error> {
+pub async fn create_user(db: &Database, user: User) -> Result<String, mongodb::error::Error> {
     let collection = db.collection::<User>("users");
-    collection.insert_one(user, None).await?;
-    Ok(())
+    match collection.insert_one(user.clone(), None).await {
+        Ok(..) => Ok(user.apikey),
+        Err(err) => Err(err),
+    }
 }
