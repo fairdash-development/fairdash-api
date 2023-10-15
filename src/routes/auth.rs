@@ -1,14 +1,14 @@
-#[path = "../lib/user.rs"]
-mod user;
+#[path = "../lib/create.rs"]
+mod create;
 use crate::AppState;
 use axum::extract::Query;
 use axum::http::StatusCode;
 use axum::{extract::State, Json};
+use create::User;
 use mongodb::bson::{doc, oid, uuid::Uuid};
 use passablewords::{check_password, PasswordError};
 use serde::Deserialize;
 use serde_json::{json, Value};
-use user::{create_user, User};
 use validator::Validate;
 
 #[derive(Deserialize, Validate, Clone)]
@@ -87,7 +87,7 @@ pub async fn register(
             Json(json!({ "error": e.to_string() })),
         );
     }
-    let apikey = create_user(
+    let apikey = create::user(
         &state.db,
         User {
             id: oid::ObjectId::new(),
