@@ -1,6 +1,7 @@
 #[path = "../lib/user.rs"]
 mod user;
 use crate::AppState;
+use axum::extract::Query;
 use axum::http::StatusCode;
 use axum::{extract::State, Json};
 use mongodb::bson::{doc, oid, uuid::Uuid};
@@ -27,8 +28,15 @@ pub struct RegisterRequest {
     confirm_password: String,
 }
 
+#[derive(Deserialize)]
+pub struct RegisterQuery {
+    #[serde(rename = "fairOrganizer")]
+    fair_organizer: bool,
+}
+
 pub async fn register(
     State(state): State<AppState>,
+    Query(query): Query<RegisterQuery>,
     Json(request): Json<RegisterRequest>,
 ) -> (StatusCode, Json<Value>) {
     if request.password != request.confirm_password {
@@ -40,7 +48,7 @@ pub async fn register(
         );
     }
     if let Err(err) = check_password(request.password.as_str()) {
-        match err {
+        return match err {
             PasswordError::TooShort => (
                 StatusCode::BAD_REQUEST,
                 Json(json!({
@@ -71,13 +79,15 @@ pub async fn register(
                     "error": "An unknown error occurred"
                 })),
             ),
-        }
-        if let (Err(err)) = request.validate() {
-            return (StatusCode::BAD_REQUEST, Json(json!({ "error": e })));
-        }
+        };
     }
-
-    if let Ok(apikey) = create_user(
+    if let Err(e) = request.validate() {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(json!({ "error": e.to_string() })),
+        );
+    }
+    let apikey = create_user(
         &state.db,
         User {
             id: oid::ObjectId::new(),
@@ -86,29 +96,30 @@ pub async fn register(
             first_name: request.first_name,
             last_name: request.last_name,
             phone_number: request.phone_number,
-            password: if let Ok(hash) = bcrypt::hash::<String>(request.password, bcrypt::DEFAULT_COST) {
-                hash
+            password: bcrypt::hash::<String>(request.password, bcrypt::DEFAULT_COST).unwrap(),
+            role: if query.fair_organizer {
+                "organizer".to_string()
             } else {
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(json!({ "error": e })),
-                )
+                "user".to_string()
             },
-            role: "user".to_string(),
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
         },
     )
-    .await
-    {
-        (StatusCode::CREATED, Json(json!({ "apikey": apikey })))
-    } else {
-        (
+    .await;
+    if let Err(e) = apikey.clone() {
+        return (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({ "error": e })),
-        )
+            Json(json!({ "error": e.to_string() })),
+        );
     }
+    (
+        StatusCode::CREATED,
+        Json(json!({ "apikey": apikey.unwrap().to_string() })),
+    )
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Validate)]
 pub struct LoginRequest {
     #[validate(email)]
     email: String,
@@ -117,12 +128,17 @@ pub struct LoginRequest {
 
 pub async fn login(
     State(state): State<AppState>,
-    Json(request): Json<RegisterRequest>,
+    Json(request): Json<LoginRequest>,
 ) -> (StatusCode, Json<Value>) {
-    if let Err(err) = request.validate() {
-        (StatusCode::BAD_REQUEST, Json(json!({ "error": e })))
+    if let Err(e) = request.validate() {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(json!({ "error": e.to_string() })),
+        );
     }
-    match state.db.collection::<User>("users")
+    match state
+        .db
+        .collection::<User>("users")
         .find_one(doc! { "email": request.email }, None)
         .await
     {
@@ -134,7 +150,7 @@ pub async fn login(
             ),
             Err(e) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({ "error": e })),
+                Json(json!({ "error": e.to_string() })),
             ),
         },
         Ok(None) => (
@@ -143,7 +159,7 @@ pub async fn login(
         ),
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({ "error": e })),
+            Json(json!({ "error": e.to_string() })),
         ),
     }
 }

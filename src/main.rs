@@ -1,7 +1,7 @@
 use axum::{routing::post, Router, Server};
 use mongodb::{Client, Database};
 use tower::ServiceBuilder;
-use tower_http::follow_redirect::policy::PolicyExt;
+use tower_http::{compression, cors, trace};
 use tracing::Level;
 
 #[path = "routes/auth.rs"]
@@ -32,15 +32,18 @@ async fn main() {
         .init();
 
     let middlewares = ServiceBuilder::new()
-        .layer(tower_http::trace::TraceLayer::new_for_http())
-        .layer(tower_http::compression::CompressionLayer::new());
+        .layer(trace::TraceLayer::new_for_http())
+        .layer(compression::CompressionLayer::new())
+        .layer(cors::CorsLayer::permissive());
 
     let app = Router::new()
         .route("/auth/register", post(auth::register))
+        .route("/auth/login", post(auth::login))
         .with_state(state)
         .layer(middlewares);
 
-    Server::bind(&"0.0.0.0:3000".parse().unwrap())
+    println!("Starting server on port 8080");
+    Server::bind(&"0.0.0.0:8080".parse().unwrap())
         .serve(app.into_make_service())
         .await
         .unwrap();

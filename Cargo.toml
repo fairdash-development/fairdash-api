@@ -15,6 +15,7 @@ passablewords = "1.0.1"
 validator = { version = "0.16.1", features = ["derive", "phone"] }
 serde_json = "1.0.68"
 bcrypt = "0.15.0"
+chrono = { version = "0.4", features = ['serde'] }
 
 [dependencies.mongodb]
 version = "2.6.0"
