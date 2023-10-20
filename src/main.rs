@@ -1,11 +1,14 @@
+#[path = "routes/auth.rs"]
+mod auth;
+#[path = "routes/fairs.rs"]
+mod fairs;
+
 use axum::{routing::post, Router, Server};
 use mongodb::{Client, Database};
 use tower::ServiceBuilder;
 use tower_http::{compression, cors, trace};
 use tracing::Level;
 
-#[path = "routes/auth.rs"]
-mod auth;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -39,6 +42,7 @@ async fn main() {
     let app = Router::new()
         .route("/auth/register", post(auth::register))
         .route("/auth/login", post(auth::login))
+        .route("/fairs/register", post(fairs::register_fair))
         .with_state(state)
         .layer(middlewares);
 

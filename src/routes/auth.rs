@@ -1,15 +1,23 @@
 #[path = "../lib/create.rs"]
 mod create;
+#[path = "../lib/responses.rs"]
+mod responses;
+#[path = "../lib/get.rs"]
+mod get;
+
+use crate::auth::responses::{INTERNAL_SERVER_ERROR, PASSWORDS_DONT_MATCH, PASSWORD_TOO_COMMON, PASSWORD_TOO_SHORT, PASSWORD_TOO_SIMPLE, EMAIL_ALREADY_IN_USE, INVALID_EMAIL_OR_PASSWORD};
 use crate::AppState;
 use axum::extract::Query;
 use axum::http::StatusCode;
+use axum::response::{IntoResponse, Response};
 use axum::{extract::State, Json};
 use create::User;
 use mongodb::bson::{doc, oid, uuid::Uuid};
 use passablewords::{check_password, PasswordError};
 use serde::Deserialize;
-use serde_json::{json, Value};
+use serde_json::json;
 use validator::Validate;
+use crate::auth::get::UserSearchMode;
 
 #[derive(Deserialize, Validate, Clone)]
 pub struct RegisterRequest {
@@ -38,55 +46,28 @@ pub async fn register(
     State(state): State<AppState>,
     Query(query): Query<RegisterQuery>,
     Json(request): Json<RegisterRequest>,
-) -> (StatusCode, Json<Value>) {
-    if request.password != request.confirm_password {
-        return (
-            StatusCode::BAD_REQUEST,
-            Json(json!({
-                "error": "Your passwords do not match"
-            })),
-        );
+) -> Response {
+    if request.password.ne(&request.confirm_password) {
+        return PASSWORDS_DONT_MATCH.clone();
     }
     if let Err(err) = check_password(request.password.as_str()) {
         return match err {
-            PasswordError::TooShort => (
-                StatusCode::BAD_REQUEST,
-                Json(json!({
-                    "error": "Your password is too short"
-                })),
-            ),
-            PasswordError::TooCommon => (
-                StatusCode::BAD_REQUEST,
-                Json(json!({
-                    "error": "Your password is too common"
-                })),
-            ),
-            PasswordError::TooSimple => (
-                StatusCode::BAD_REQUEST,
-                Json(json!({
-                    "error": "Your password is too simple"
-                })),
-            ),
-            PasswordError::InternalError => (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({
-                    "error": "An unknown error occurred"
-                })),
-            ),
-            _ => (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({
-                    "error": "An unknown error occurred"
-                })),
-            ),
+            PasswordError::TooShort => PASSWORD_TOO_SHORT.clone(),
+            PasswordError::TooCommon => PASSWORD_TOO_COMMON.clone(),
+            PasswordError::TooSimple => PASSWORD_TOO_SIMPLE.clone(),
+            PasswordError::InternalError => INTERNAL_SERVER_ERROR.clone(),
+            _ => INTERNAL_SERVER_ERROR.clone(),
         };
     }
     if let Err(e) = request.validate() {
-        return (
-            StatusCode::BAD_REQUEST,
-            Json(json!({ "error": e.to_string() })),
-        );
+        println!("Error: {}", e.to_string());
+        return INTERNAL_SERVER_ERROR.clone();
     }
+
+    if get::user(&state.db, request.email.clone(), UserSearchMode::Email).await.is_ok() {
+        return EMAIL_ALREADY_IN_USE.clone()
+    }
+
     let apikey = create::user(
         &state.db,
         User {
@@ -108,15 +89,14 @@ pub async fn register(
     )
     .await;
     if let Err(e) = apikey.clone() {
-        return (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({ "error": e.to_string() })),
-        );
+        println!("Error: {}", e.to_string());
+        return INTERNAL_SERVER_ERROR.clone();
     }
     (
         StatusCode::CREATED,
         Json(json!({ "apikey": apikey.unwrap().to_string() })),
     )
+        .into_response()
 }
 
 #[derive(Deserialize, Validate)]
@@ -129,12 +109,10 @@ pub struct LoginRequest {
 pub async fn login(
     State(state): State<AppState>,
     Json(request): Json<LoginRequest>,
-) -> (StatusCode, Json<Value>) {
+) -> Response {
     if let Err(e) = request.validate() {
-        return (
-            StatusCode::BAD_REQUEST,
-            Json(json!({ "error": e.to_string() })),
-        );
+        println!("Error: {}", e.to_string());
+        return INTERNAL_SERVER_ERROR.clone();
     }
     match state
         .db
@@ -142,24 +120,18 @@ pub async fn login(
         .find_one(doc! { "email": request.email }, None)
         .await
     {
-        Ok(Some(user)) => match bcrypt::verify(request.password, &*user.password) {
-            Ok(true) => (StatusCode::OK, Json(json!({ "apikey": user.apikey }))),
-            Ok(false) => (
-                StatusCode::UNAUTHORIZED,
-                Json(json!({ "error": "Invalid password" })),
-            ),
-            Err(e) => (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({ "error": e.to_string() })),
-            ),
+        Ok(Some(user)) => match bcrypt::verify(request.password, user.password.as_str()) {
+            Ok(true) => (StatusCode::OK, Json(json!({ "apikey": user.apikey }))).into_response(),
+            Ok(false) => INVALID_EMAIL_OR_PASSWORD.clone(),
+            Err(e) => {
+                println!("Error: {}", e.to_string());
+                INTERNAL_SERVER_ERROR.clone()
+            },
         },
-        Ok(None) => (
-            StatusCode::UNAUTHORIZED,
-            Json(json!({ "error": "Invalid email" })),
-        ),
-        Err(e) => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({ "error": e.to_string() })),
-        ),
+        Ok(None) => INVALID_EMAIL_OR_PASSWORD.clone(),
+        Err(e) => {
+            println!("Error: {}", e.to_string());
+            INTERNAL_SERVER_ERROR.clone()
+        }
     }
 }

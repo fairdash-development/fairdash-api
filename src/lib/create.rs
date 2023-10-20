@@ -94,3 +94,11 @@ pub struct Fair {
     #[serde(rename = "camperSpotMap")]
     pub camper_spot_map: String,
 }
+
+pub async fn fair(db: &Database, fair: Fair) -> Result<String, mongodb::error::Error> {
+    let collection = db.collection::<Fair>("fairs");
+    match collection.insert_one(fair.clone(), None).await {
+        Ok(..) => Ok(fair.id.to_string()),
+        Err(err) => Err(err),
+    }
+}
