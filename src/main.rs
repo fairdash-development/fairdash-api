@@ -2,13 +2,16 @@
 mod auth;
 #[path = "routes/fairs.rs"]
 mod fairs;
+#[path = "routes/users.rs"]
+mod users;
 
+use axum::routing::get;
 use axum::{routing::post, Router, Server};
 use mongodb::{Client, Database};
+use std::env;
 use tower::ServiceBuilder;
 use tower_http::{compression, cors, trace};
 use tracing::Level;
-
 
 #[derive(Clone)]
 pub struct AppState {
@@ -40,14 +43,27 @@ async fn main() {
         .layer(cors::CorsLayer::permissive());
 
     let app = Router::new()
+        //auth
         .route("/auth/register", post(auth::register))
         .route("/auth/login", post(auth::login))
+        //users
+        .route("/users", get(users::get_by_apikey))
+        .route("/users/id/:user_id", get(users::get_by_id))
+        .route("/users/email/:email", get(users::get_by_email))
+        .route("/users/apikey", get(users::get_by_apikey))
+        //fairs
         .route("/fairs/register", post(fairs::register_fair))
+        .route("/fairs", get(fairs::get_all))
         .with_state(state)
         .layer(middlewares);
 
-    println!("Starting server on port 8080");
-    Server::bind(&"0.0.0.0:8080".parse().unwrap())
+    let port = match env::var_os("PORT") {
+        Some(val) => val.into_string().unwrap(),
+        None => "8080".to_string(),
+    };
+    let ip = format!("0.0.0.0:{port}");
+    println!("Starting server on {ip}");
+    Server::bind(&ip.parse().unwrap())
         .serve(app.into_make_service())
         .await
         .unwrap();

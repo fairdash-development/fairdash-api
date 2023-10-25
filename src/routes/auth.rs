@@ -1,11 +1,15 @@
 #[path = "../lib/create.rs"]
-mod create;
-#[path = "../lib/responses.rs"]
-mod responses;
+pub mod create;
 #[path = "../lib/get.rs"]
 mod get;
+#[path = "../lib/responses.rs"]
+mod responses;
 
-use crate::auth::responses::{INTERNAL_SERVER_ERROR, PASSWORDS_DONT_MATCH, PASSWORD_TOO_COMMON, PASSWORD_TOO_SHORT, PASSWORD_TOO_SIMPLE, EMAIL_ALREADY_IN_USE, INVALID_EMAIL_OR_PASSWORD};
+use crate::auth::get::UserSearchMode;
+use crate::auth::responses::CustomResponses::{
+    EmailAlreadyInUse, InternalServerError, InvalidEmailOrPassword, PasswordTooCommon,
+    PasswordTooShort, PasswordTooSimple, PasswordsDontMatch,
+};
 use crate::AppState;
 use axum::extract::Query;
 use axum::http::StatusCode;
@@ -17,7 +21,6 @@ use passablewords::{check_password, PasswordError};
 use serde::Deserialize;
 use serde_json::json;
 use validator::Validate;
-use crate::auth::get::UserSearchMode;
 
 #[derive(Deserialize, Validate, Clone)]
 pub struct RegisterRequest {
@@ -48,24 +51,27 @@ pub async fn register(
     Json(request): Json<RegisterRequest>,
 ) -> Response {
     if request.password.ne(&request.confirm_password) {
-        return PASSWORDS_DONT_MATCH.clone();
+        return PasswordsDontMatch.into_response();
     }
     if let Err(err) = check_password(request.password.as_str()) {
         return match err {
-            PasswordError::TooShort => PASSWORD_TOO_SHORT.clone(),
-            PasswordError::TooCommon => PASSWORD_TOO_COMMON.clone(),
-            PasswordError::TooSimple => PASSWORD_TOO_SIMPLE.clone(),
-            PasswordError::InternalError => INTERNAL_SERVER_ERROR.clone(),
-            _ => INTERNAL_SERVER_ERROR.clone(),
+            PasswordError::TooShort => PasswordTooShort.into_response(),
+            PasswordError::TooCommon => PasswordTooCommon.into_response(),
+            PasswordError::TooSimple => PasswordTooSimple.into_response(),
+            PasswordError::InternalError => InternalServerError.into_response(),
+            _ => InternalServerError.into_response(),
         };
     }
     if let Err(e) = request.validate() {
         println!("Error: {}", e.to_string());
-        return INTERNAL_SERVER_ERROR.clone();
+        return InternalServerError.into_response();
     }
 
-    if get::user(&state.db, request.email.clone(), UserSearchMode::Email).await.is_ok() {
-        return EMAIL_ALREADY_IN_USE.clone()
+    if get::user(&state.db, request.email.clone(), UserSearchMode::Email)
+        .await
+        .is_ok()
+    {
+        return EmailAlreadyInUse.into_response();
     }
 
     let apikey = create::user(
@@ -90,7 +96,7 @@ pub async fn register(
     .await;
     if let Err(e) = apikey.clone() {
         println!("Error: {}", e.to_string());
-        return INTERNAL_SERVER_ERROR.clone();
+        return InternalServerError.into_response();
     }
     (
         StatusCode::CREATED,
@@ -106,13 +112,10 @@ pub struct LoginRequest {
     password: String,
 }
 
-pub async fn login(
-    State(state): State<AppState>,
-    Json(request): Json<LoginRequest>,
-) -> Response {
+pub async fn login(State(state): State<AppState>, Json(request): Json<LoginRequest>) -> Response {
     if let Err(e) = request.validate() {
         println!("Error: {}", e.to_string());
-        return INTERNAL_SERVER_ERROR.clone();
+        return InternalServerError.into_response();
     }
     match state
         .db
@@ -122,16 +125,16 @@ pub async fn login(
     {
         Ok(Some(user)) => match bcrypt::verify(request.password, user.password.as_str()) {
             Ok(true) => (StatusCode::OK, Json(json!({ "apikey": user.apikey }))).into_response(),
-            Ok(false) => INVALID_EMAIL_OR_PASSWORD.clone(),
+            Ok(false) => InvalidEmailOrPassword.into_response(),
             Err(e) => {
                 println!("Error: {}", e.to_string());
-                INTERNAL_SERVER_ERROR.clone()
-            },
+                InternalServerError.into_response()
+            }
         },
-        Ok(None) => INVALID_EMAIL_OR_PASSWORD.clone(),
+        Ok(None) => InvalidEmailOrPassword.into_response(),
         Err(e) => {
             println!("Error: {}", e.to_string());
-            INTERNAL_SERVER_ERROR.clone()
+            InternalServerError.into_response()
         }
     }
 }

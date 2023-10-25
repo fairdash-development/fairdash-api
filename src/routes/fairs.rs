@@ -1,23 +1,25 @@
 #[path = "../lib/create.rs"]
 mod create;
-#[path = "../lib/responses.rs"]
-mod responses;
 #[path = "../lib/get.rs"]
 mod get;
+#[path = "../lib/responses.rs"]
+mod responses;
 
+use crate::fairs::get::UserSearchMode;
+use crate::fairs::responses::CustomResponses::{
+    InternalServerError, InvalidApiKey, InvalidPermissions,
+};
+use crate::AppState;
 use axum::extract::State;
 use axum::http::{HeaderMap, StatusCode};
-use axum::Json;
 use axum::response::{IntoResponse, Response};
+use axum::Json;
 use chrono::{DateTime, Utc};
+use create::{FairDay, FairEvent};
 use mongodb::bson::oid;
 use serde::Deserialize;
 use serde_json::json;
 use validator::Validate;
-use crate::AppState;
-use create::{FairDay, FairEvent};
-use crate::fairs::get::UserSearchMode;
-use crate::fairs::responses::{INTERNAL_SERVER_ERROR, INVALID_API_KEY, INVALID_PERMISSIONS};
 
 #[derive(Deserialize, Validate, Clone)]
 pub struct RegisterFairRequest {
@@ -39,39 +41,72 @@ pub struct RegisterFairRequest {
     pub camper_spot_map: String,
 }
 
-pub async fn register_fair(State(state): State<AppState>, Json(request): Json<RegisterFairRequest>, headers: HeaderMap) -> Response {
+pub async fn register_fair(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    Json(request): Json<RegisterFairRequest>,
+) -> Response {
     let apikey = headers.get("x-api-key");
     if apikey.is_none() {
-        return INVALID_API_KEY.clone()
+        return InvalidApiKey.into_response();
     }
 
-    let user = get::user(&state.db, apikey.unwrap().to_str().unwrap().to_string(), UserSearchMode::ApiKey).await;
+    let user = get::user(
+        &state.db,
+        apikey.unwrap().to_str().unwrap().to_string(),
+        UserSearchMode::ApiKey,
+    )
+    .await;
     if user.is_err() {
-        return INVALID_API_KEY.clone()
-    } else if user.unwrap().role != "organizer" {
-        return INVALID_PERMISSIONS.clone()
+        return InvalidApiKey.into_response();
+    } else if user.as_ref().unwrap().role != "organizer" {
+        return InvalidPermissions.into_response();
     }
 
-    let fair_created = create::fair(&state.db, create::Fair {
-        id: oid::ObjectId::new(),
-        name: request.name,
-        location: request.location,
-        start_date: request.start_date,
-        end_date: request.end_date,
-        created_at: request.created_at,
-        updated_at: request.updated_at,
-        organizer_id: user.unwrap().id,
-        fair_days: request.fair_days,
-        fair_events: request.fair_events,
-        camper_spot_map: request.camper_spot_map,
-    }).await;
+    let fair = create::fair(
+        &state.db,
+        create::Fair {
+            id: oid::ObjectId::new(),
+            name: request.name,
+            location: request.location,
+            start_date: request.start_date,
+            end_date: request.end_date,
+            created_at: request.created_at,
+            updated_at: request.updated_at,
+            organizer_id: user.unwrap().id.clone(),
+            fair_days: request.fair_days,
+            fair_events: request.fair_events,
+            camper_spot_map: request.camper_spot_map,
+        },
+    )
+    .await;
 
-    return if fair_created.is_err() {
-        println!("Error: {}", fair_created.unwrap_err().to_string());
-        INTERNAL_SERVER_ERROR.clone()
+    return if fair.is_err() {
+        println!("Error: {}", fair.unwrap_err().to_string());
+        InternalServerError.into_response()
     } else {
-        (StatusCode::OK, Json(json!({
-            "id": fair_created.unwrap().to_string,
-        }))).into_response()
-    }
+        (
+            StatusCode::OK,
+            Json(json!({
+                "id": fair.unwrap(),
+            })),
+        )
+            .into_response()
+    };
+}
+
+pub async fn get_all(State(state): State<AppState>) -> Response {
+    let fairs = get::fairs(&state.db).await;
+    return if fairs.is_err() {
+        println!("Error: {}", fairs.unwrap_err().to_string());
+        InternalServerError.into_response()
+    } else {
+        (
+            StatusCode::OK,
+            Json(json!({
+                "fairs": fairs.unwrap(),
+            })),
+        )
+            .into_response()
+    };
 }

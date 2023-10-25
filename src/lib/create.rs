@@ -31,7 +31,7 @@ pub async fn user(db: &Database, user: User) -> Result<String, mongodb::error::E
     }
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct FairDay {
     #[serde(rename = "_id")]
     pub id: oid::ObjectId,
@@ -49,7 +49,7 @@ pub struct FairDay {
     pub closing_time: DateTime<Utc>,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct FairEvent {
     #[serde(rename = "_id")]
     pub id: oid::ObjectId,
@@ -71,7 +71,7 @@ pub struct FairEvent {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Fair {
     #[serde(rename = "_id")]
     pub id: oid::ObjectId,
