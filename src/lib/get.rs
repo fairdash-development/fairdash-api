@@ -1,5 +1,4 @@
-use crate::auth::create::{Fair, User};
-use futures::stream::StreamExt;
+use crate::auth::create::User;
 use mongodb::{bson::doc, Database};
 
 pub enum UserSearchMode {
@@ -28,19 +27,5 @@ pub async fn user(
         Ok(Some(user)) => Ok(user),
         Err(err) => Err(Some(err)),
         _ => Err(None),
-    }
-}
-
-pub async fn fairs(db: &Database) -> Result<Vec<Fair>, mongodb::error::Error> {
-    let collection = db.collection::<Fair>("fairs");
-    match collection.find(None, None).await {
-        Ok(mut cursor) => {
-            let mut fairs: Vec<Fair> = Vec::new();
-            while let Some(fair) = cursor.next().await {
-                fairs.push(fair.unwrap());
-            }
-            Ok(fairs)
-        }
-        Err(err) => Err(err),
     }
 }

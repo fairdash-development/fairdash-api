@@ -5,18 +5,20 @@ mod get;
 #[path = "../lib/responses.rs"]
 mod responses;
 
+use crate::auth::create::Fair;
 use crate::fairs::get::UserSearchMode;
 use crate::fairs::responses::CustomResponses::{
     InternalServerError, InvalidApiKey, InvalidPermissions,
 };
 use crate::AppState;
-use axum::extract::State;
+use axum::extract::{Query, State};
 use axum::http::{HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::Json;
 use chrono::{DateTime, Utc};
 use create::{FairDay, FairEvent};
-use mongodb::bson::oid;
+use futures::stream::StreamExt;
+use mongodb::bson::{doc, oid};
 use serde::Deserialize;
 use serde_json::json;
 use validator::Validate;
@@ -74,10 +76,10 @@ pub async fn register_fair(
             created_at: request.created_at,
             updated_at: request.updated_at,
             organizer_id: user.unwrap().id.clone(),
-            fair_days: request.fair_days,
-            fair_events: request.fair_events,
             camper_spot_map: request.camper_spot_map,
         },
+        request.fair_days,
+        request.fair_events,
     )
     .await;
 
@@ -95,18 +97,31 @@ pub async fn register_fair(
     };
 }
 
-pub async fn get_all(State(state): State<AppState>) -> Response {
-    let fairs = get::fairs(&state.db).await;
-    return if fairs.is_err() {
-        println!("Error: {}", fairs.unwrap_err().to_string());
-        InternalServerError.into_response()
+#[derive(Deserialize, Clone)]
+pub struct GetFairByOwnerOption {
+    id: String,
+}
+
+pub async fn get_all(
+    State(state): State<AppState>,
+    Query(possible_owner): Query<GetFairByOwnerOption>,
+) -> Response {
+    let collection = state.db.collection::<Fair>("fairs");
+    let mut fairs: Vec<Fair> = Vec::new();
+    if possible_owner.id == "none" {
+        let mut cursor = collection.find(None, None).await.unwrap();
+        while let Some(fair) = cursor.next().await {
+            fairs.push(fair.unwrap());
+        }
     } else {
-        (
-            StatusCode::OK,
-            Json(json!({
-                "fairs": fairs.unwrap(),
-            })),
-        )
-            .into_response()
-    };
+        let mut cursor = collection
+            .find(doc! { "organizerId": possible_owner.id }, None)
+            .await
+            .unwrap();
+        while let Some(fair) = cursor.next().await {
+            fairs.push(fair.unwrap());
+        }
+    }
+
+    (StatusCode::OK, Json(json!({ "fairs": fairs }))).into_response()
 }

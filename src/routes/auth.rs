@@ -124,7 +124,11 @@ pub async fn login(State(state): State<AppState>, Json(request): Json<LoginReque
         .await
     {
         Ok(Some(user)) => match bcrypt::verify(request.password, user.password.as_str()) {
-            Ok(true) => (StatusCode::OK, Json(json!({ "apikey": user.apikey }))).into_response(),
+            Ok(true) => (
+                StatusCode::OK,
+                Json(json!({ "apikey": user.apikey, "role": user.role, "id": user.id })),
+            )
+                .into_response(),
             Ok(false) => InvalidEmailOrPassword.into_response(),
             Err(e) => {
                 println!("Error: {}", e.to_string());
