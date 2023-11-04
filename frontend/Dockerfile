@@ -3,7 +3,7 @@ LABEL authors="cameron"
 
 ENTRYPOINT ["top", "-b"]
 
-FROM ubuntu:latest
+FROM rust:latest
 
 WORKDIR /app
 
