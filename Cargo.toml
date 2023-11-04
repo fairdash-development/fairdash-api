@@ -1,3 +1,45 @@
+[workspace]
+members = [
+    "frontend",
+    "backend"
+]
+
 [package]
-name = "backend"
-version = "1.0.0"
+name = "fairdash"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "fairdash-backend"
+path = "backend/src/main.rs"
+
+[[bin]]
+name = "fairdash-frontend"
+path = "frontend/src/main.rs"
+
+[dependencies]
+axum = "0.6.20"
+tokio = { version = "1.12.0", features = ["full"] }
+serde = { version = "1.0.130", features = ["derive"] }
+tower = {version = "0.4.12", features = ["full"]}
+tower-http = { version = "0.4.0", features = ["full"]}
+tracing-subscriber = "0.3.17"
+tracing = "0.1.37"
+passablewords = "1.0.1"
+validator = { version = "0.16.1", features = ["derive", "phone"] }
+serde_json = "1.0.68"
+bcrypt = "0.15.0"
+chrono = { version = "0.4", features = ['serde'] }
+futures = "0.3.28"
+dioxus = "0.4.0"
+dioxus-fullstack = "0.4.1"
+
+[dependencies.mongodb]
+version = "2.6.0"
+default-features = false
+features = ["async-std-runtime"]
+
+[features]
+default = []
+ssr = ["dioxus-fullstack/axum"]
+web = ["dioxus-fullstack/web"]
