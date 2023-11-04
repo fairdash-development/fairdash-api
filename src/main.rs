@@ -49,7 +49,7 @@ async fn main() {
         //fairs
         .route("/fairs/register", post(fairs::register_fair))
         .route("/fairs", get(fairs::get_all))
-        .with_state(state)
+        //middleware
         .layer(trace::TraceLayer::new_for_http())
         .layer(compression::CompressionLayer::new())
         .layer(
@@ -60,7 +60,8 @@ async fn main() {
                     .parse::<HeaderValue>()
                     .unwrap(),
             }),
-        );
+        )
+        .with_state(state);
 
     let port = match env::var_os("PORT") {
         Some(val) => val.into_string().unwrap(),
