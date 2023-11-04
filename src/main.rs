@@ -9,7 +9,6 @@ use axum::routing::get;
 use axum::{routing::post, Router, Server};
 use mongodb::{Client, Database};
 use std::env;
-use tower::ServiceBuilder;
 use tower_http::{compression, cors, trace};
 use tracing::Level;
 
@@ -21,7 +20,7 @@ pub struct AppState {
 #[tokio::main]
 async fn main() {
     let state = AppState {
-        db: Client::with_uri_str(std::env::var("DATABASE_URL").expect("DATABASE_URL not set"))
+        db: Client::with_uri_str(env::var("DATABASE_URL").expect("DATABASE_URL not set"))
             .await
             .expect("Failed to connect to database")
             .database("test")
@@ -37,11 +36,6 @@ async fn main() {
         .with_test_writer()
         .init();
 
-    let middlewares = ServiceBuilder::new()
-        .layer(trace::TraceLayer::new_for_http())
-        .layer(compression::CompressionLayer::new())
-        .layer(cors::CorsLayer::permissive());
-
     let app = Router::new()
         //auth
         .route("/auth/register", post(auth::register))
@@ -55,7 +49,9 @@ async fn main() {
         .route("/fairs/register", post(fairs::register_fair))
         .route("/fairs", get(fairs::get_all))
         .with_state(state)
-        .layer(middlewares);
+        .layer(trace::TraceLayer::new_for_http())
+        .layer(compression::CompressionLayer::new())
+        .layer(cors::CorsLayer::permissive());
 
     let port = match env::var_os("PORT") {
         Some(val) => val.into_string().unwrap(),

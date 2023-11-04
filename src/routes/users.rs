@@ -7,24 +7,28 @@ use crate::users::{
     responses::CustomResponses::{InvalidApiKey, InvalidRequest},
 };
 use crate::AppState;
-use axum::extract::{Path, State};
-use axum::http::{HeaderMap, StatusCode};
+use axum::extract::{Path, Query, State};
+use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::Json;
 use mongodb::bson::oid::ObjectId;
+use serde::Deserialize;
 use serde_json::json;
 
-pub async fn get_by_apikey(State(state): State<AppState>, headers: HeaderMap) -> Response {
-    let apikey = headers.get("x-api-key");
-    if apikey.is_none() {
+#[derive(Deserialize)]
+pub struct GetUserByAPIKeyQuery {
+    apikey: String,
+}
+
+pub async fn get_by_apikey(
+    State(state): State<AppState>,
+    Query(query): Query<GetUserByAPIKeyQuery>,
+) -> Response {
+    let apikey = query.apikey;
+    if apikey.is_empty() {
         return InvalidApiKey.into_response();
     }
-    let user = get::user(
-        &state.db,
-        apikey.unwrap().to_str().unwrap().to_string(),
-        UserSearchMode::ApiKey,
-    )
-    .await;
+    let user = get::user(&state.db, apikey, UserSearchMode::ApiKey).await;
     if user.is_err() {
         return InvalidApiKey.into_response();
     }

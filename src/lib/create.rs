@@ -36,17 +36,17 @@ pub struct FairDay {
     #[serde(rename = "_id")]
     pub id: oid::ObjectId,
     #[serde(rename = "fairId")]
-    pub fair_id: oid::ObjectId,
+    pub fair_id: String,
     #[serde(rename = "date")]
-    pub date: DateTime<Utc>,
+    pub date: String,
     #[serde(rename = "createdAt")]
-    pub created_at: DateTime<Utc>,
+    pub created_at: String,
     #[serde(rename = "updatedAt")]
-    pub updated_at: DateTime<Utc>,
+    pub updated_at: String,
     #[serde(rename = "openingTime")]
-    pub opening_time: DateTime<Utc>,
+    pub opening_time: String,
     #[serde(rename = "closingTime")]
-    pub closing_time: DateTime<Utc>,
+    pub closing_time: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -62,13 +62,13 @@ pub struct FairEvent {
     #[serde(rename = "location")]
     pub location: String,
     #[serde(rename = "startTime")]
-    pub start_time: DateTime<Utc>,
+    pub start_time: String,
     #[serde(rename = "endTime")]
-    pub end_time: DateTime<Utc>,
+    pub end_time: String,
     #[serde(rename = "createdAt")]
-    pub created_at: DateTime<Utc>,
+    pub created_at: String,
     #[serde(rename = "updatedAt")]
-    pub updated_at: DateTime<Utc>,
+    pub updated_at: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -78,15 +78,15 @@ pub struct Fair {
     pub name: String,
     pub location: String,
     #[serde(rename = "startDate")]
-    pub start_date: DateTime<Utc>,
+    pub start_date: String,
     #[serde(rename = "endDate")]
-    pub end_date: DateTime<Utc>,
+    pub end_date: String,
     #[serde(rename = "createdAt")]
-    pub created_at: DateTime<Utc>,
+    pub created_at: String,
     #[serde(rename = "updatedAt")]
-    pub updated_at: DateTime<Utc>,
+    pub updated_at: String,
     #[serde(rename = "organizerId")]
-    pub organizer_id: oid::ObjectId,
+    pub organizer_id: String,
     #[serde(rename = "camperSpotMap")]
     pub camper_spot_map: String,
 }

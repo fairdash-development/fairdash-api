@@ -5,7 +5,7 @@ mod get;
 #[path = "../lib/responses.rs"]
 mod responses;
 
-use crate::auth::create::Fair;
+use crate::fairs::create::{Fair, FairDay, FairEvent};
 use crate::fairs::get::UserSearchMode;
 use crate::fairs::responses::CustomResponses::{
     InternalServerError, InvalidApiKey, InvalidPermissions,
@@ -15,8 +15,6 @@ use axum::extract::{Query, State};
 use axum::http::{HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::Json;
-use chrono::{DateTime, Utc};
-use create::{FairDay, FairEvent};
 use futures::stream::StreamExt;
 use mongodb::bson::{doc, oid};
 use serde::Deserialize;
@@ -28,13 +26,13 @@ pub struct RegisterFairRequest {
     pub name: String,
     pub location: String,
     #[serde(rename = "startDate")]
-    pub start_date: DateTime<Utc>,
+    pub start_date: String,
     #[serde(rename = "endDate")]
-    pub end_date: DateTime<Utc>,
+    pub end_date: String,
     #[serde(rename = "createdAt")]
-    pub created_at: DateTime<Utc>,
+    pub created_at: String,
     #[serde(rename = "updatedAt")]
-    pub updated_at: DateTime<Utc>,
+    pub updated_at: String,
     #[serde(rename = "fairDays")]
     pub fair_days: Vec<FairDay>,
     #[serde(rename = "fairEvents")]
@@ -67,7 +65,7 @@ pub async fn register_fair(
 
     let fair = create::fair(
         &state.db,
-        create::Fair {
+        Fair {
             id: oid::ObjectId::new(),
             name: request.name,
             location: request.location,
@@ -75,7 +73,7 @@ pub async fn register_fair(
             end_date: request.end_date,
             created_at: request.created_at,
             updated_at: request.updated_at,
-            organizer_id: user.unwrap().id.clone(),
+            organizer_id: user.unwrap().id.clone().to_string(),
             camper_spot_map: request.camper_spot_map,
         },
         request.fair_days,
@@ -98,13 +96,13 @@ pub async fn register_fair(
 }
 
 #[derive(Deserialize, Clone)]
-pub struct GetFairByOwnerOption {
+pub struct GetFairByOwnerQuery {
     id: String,
 }
 
 pub async fn get_all(
     State(state): State<AppState>,
-    Query(possible_owner): Query<GetFairByOwnerOption>,
+    Query(possible_owner): Query<GetFairByOwnerQuery>,
 ) -> Response {
     let collection = state.db.collection::<Fair>("fairs");
     let mut fairs: Vec<Fair> = Vec::new();
