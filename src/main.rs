@@ -51,7 +51,7 @@ async fn main() {
         .with_state(state)
         .layer(trace::TraceLayer::new_for_http())
         .layer(compression::CompressionLayer::new())
-        .layer(cors::CorsLayer::permissive());
+        .layer(cors::CorsLayer::new().allow_any_origin());
 
     let port = match env::var_os("PORT") {
         Some(val) => val.into_string().unwrap(),
