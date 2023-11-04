@@ -1,21 +1,7 @@
-[workspace]
-members = [
-    "frontend",
-    "backend"
-]
-
 [package]
-name = "fairdash"
+name = "fairdash-backend"
 version = "0.1.0"
 edition = "2021"
-
-[[bin]]
-name = "fairdash-backend"
-path = "backend/src/main.rs"
-
-[[bin]]
-name = "fairdash-frontend"
-path = "frontend/src/main.rs"
 
 [dependencies]
 axum = "0.6.20"
@@ -31,15 +17,8 @@ serde_json = "1.0.68"
 bcrypt = "0.15.0"
 chrono = { version = "0.4", features = ['serde'] }
 futures = "0.3.28"
-dioxus = "0.4.0"
-dioxus-fullstack = "0.4.1"
 
 [dependencies.mongodb]
 version = "2.6.0"
 default-features = false
 features = ["async-std-runtime"]
-
-[features]
-default = []
-ssr = ["dioxus-fullstack/axum"]
-web = ["dioxus-fullstack/web"]
