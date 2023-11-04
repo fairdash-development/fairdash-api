@@ -1,19 +1,21 @@
-#[path = "../lib/get.rs"]
-mod get;
-#[path = "../lib/responses.rs"]
-mod responses;
+use axum::extract::{Path, Query, State};
+use axum::http::StatusCode;
+use axum::Json;
+use axum::response::{IntoResponse, Response};
+use mongodb::bson::oid::ObjectId;
+use serde::Deserialize;
+use serde_json::json;
+
+use crate::AppState;
 use crate::users::{
     get::UserSearchMode,
     responses::CustomResponses::{InvalidApiKey, InvalidRequest},
 };
-use crate::AppState;
-use axum::extract::{Path, Query, State};
-use axum::http::StatusCode;
-use axum::response::{IntoResponse, Response};
-use axum::Json;
-use mongodb::bson::oid::ObjectId;
-use serde::Deserialize;
-use serde_json::json;
+
+#[path = "../lib/get.rs"]
+mod get;
+#[path = "../lib/responses.rs"]
+mod responses;
 
 #[derive(Deserialize)]
 pub struct GetUserByAPIKeyQuery {

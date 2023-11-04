@@ -1,26 +1,27 @@
-#[path = "../lib/create.rs"]
-pub mod create;
-#[path = "../lib/get.rs"]
-mod get;
-#[path = "../lib/responses.rs"]
-mod responses;
-
-use crate::auth::get::UserSearchMode;
-use crate::auth::responses::CustomResponses::{
-    EmailAlreadyInUse, InternalServerError, InvalidEmailOrPassword, PasswordTooCommon,
-    PasswordTooShort, PasswordTooSimple, PasswordsDontMatch,
-};
-use crate::AppState;
+use axum::{extract::State, Json};
 use axum::extract::Query;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use axum::{extract::State, Json};
 use create::User;
 use mongodb::bson::{doc, oid, uuid::Uuid};
 use passablewords::{check_password, PasswordError};
 use serde::Deserialize;
 use serde_json::json;
 use validator::Validate;
+
+use crate::AppState;
+use crate::auth::get::UserSearchMode;
+use crate::auth::responses::CustomResponses::{
+    EmailAlreadyInUse, InternalServerError, InvalidEmailOrPassword, PasswordsDontMatch,
+    PasswordTooCommon, PasswordTooShort, PasswordTooSimple,
+};
+
+#[path = "../lib/create.rs"]
+pub mod create;
+#[path = "../lib/get.rs"]
+mod get;
+#[path = "../lib/responses.rs"]
+mod responses;
 
 #[derive(Deserialize, Validate, Clone)]
 pub struct RegisterRequest {

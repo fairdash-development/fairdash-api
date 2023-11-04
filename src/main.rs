@@ -1,17 +1,17 @@
+use axum::{Router, routing::post, Server};
+use axum::http::HeaderValue;
+use axum::routing::get;
+use mongodb::{Client, Database};
+use std::env;
+use tower_http::{compression, cors, trace};
+use tracing::Level;
+
 #[path = "routes/auth.rs"]
 mod auth;
 #[path = "routes/fairs.rs"]
 mod fairs;
 #[path = "routes/users.rs"]
 mod users;
-
-use axum::http::HeaderValue;
-use axum::routing::get;
-use axum::{routing::post, Router, Server};
-use mongodb::{Client, Database};
-use std::env;
-use tower_http::{compression, cors, trace};
-use tracing::Level;
 
 #[derive(Clone)]
 pub struct AppState {

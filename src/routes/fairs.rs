@@ -1,25 +1,26 @@
+use axum::extract::{Query, State};
+use axum::http::{HeaderMap, StatusCode};
+use axum::Json;
+use axum::response::{IntoResponse, Response};
+use futures::stream::StreamExt;
+use mongodb::bson::{doc, oid};
+use serde::Deserialize;
+use serde_json::json;
+use validator::Validate;
+
+use crate::AppState;
+use crate::fairs::create::{Fair, FairDay, FairEvent};
+use crate::fairs::get::UserSearchMode;
+use crate::fairs::responses::CustomResponses::{
+    InternalServerError, InvalidApiKey, InvalidPermissions,
+};
+
 #[path = "../lib/create.rs"]
 mod create;
 #[path = "../lib/get.rs"]
 mod get;
 #[path = "../lib/responses.rs"]
 mod responses;
-
-use crate::fairs::create::{Fair, FairDay, FairEvent};
-use crate::fairs::get::UserSearchMode;
-use crate::fairs::responses::CustomResponses::{
-    InternalServerError, InvalidApiKey, InvalidPermissions,
-};
-use crate::AppState;
-use axum::extract::{Query, State};
-use axum::http::{HeaderMap, StatusCode};
-use axum::response::{IntoResponse, Response};
-use axum::Json;
-use futures::stream::StreamExt;
-use mongodb::bson::{doc, oid};
-use serde::Deserialize;
-use serde_json::json;
-use validator::Validate;
 
 #[derive(Deserialize, Validate, Clone)]
 pub struct RegisterFairRequest {

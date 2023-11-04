@@ -1,5 +1,6 @@
-use crate::auth::create::User;
 use mongodb::{bson::doc, Database};
+
+use crate::auth::create::User;
 
 pub enum UserSearchMode {
     Email,
