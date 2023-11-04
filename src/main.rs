@@ -36,6 +36,10 @@ async fn main() {
         .with_test_writer()
         .init();
 
+    let origin = match env::var_os("ORIGIN") {
+        Some(val) => val.into_string().unwrap(),
+        None => "http://localhost:3000".to_string(),
+    };
     let app = Router::new()
         //auth
         .route("/auth/register", post(auth::register))
@@ -51,7 +55,7 @@ async fn main() {
         .with_state(state)
         .layer(trace::TraceLayer::new_for_http())
         .layer(compression::CompressionLayer::new())
-        .layer(cors::CorsLayer::new().allow_any_origin());
+        .layer(cors::CorsLayer::new().allow_origin(origin));
 
     let port = match env::var_os("PORT") {
         Some(val) => val.into_string().unwrap(),
