@@ -5,6 +5,7 @@ mod fairs;
 #[path = "routes/users.rs"]
 mod users;
 
+use axum::http::HeaderValue;
 use axum::routing::get;
 use axum::{routing::post, Router, Server};
 use mongodb::{Client, Database};
@@ -53,8 +54,11 @@ async fn main() {
         .layer(compression::CompressionLayer::new())
         .layer(
             cors::CorsLayer::new().allow_origin(match env::var_os("ORIGIN") {
-                Some(val) => val.into_string().unwrap(),
-                None => "http://localhost:3000".to_string(),
+                Some(val) => val.into_string().unwrap().parse::<HeaderValue>().unwrap(),
+                None => "http://localhost:3000"
+                    .to_string()
+                    .parse::<HeaderValue>()
+                    .unwrap(),
             }),
         );
 
