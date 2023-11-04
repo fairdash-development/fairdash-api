@@ -12,5 +12,5 @@ COPY . .
 ENV PORT=${PORT:-8080}
 EXPOSE $PORT
 
-RUN cargo build --release --bin fairdash-api
-CMD ["./target/release/fairdash-api"]
+RUN cargo build --release --bin fairdash-backend
+CMD ./target/release/fairdash-backend
