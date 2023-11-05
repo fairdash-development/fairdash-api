@@ -98,6 +98,7 @@ pub async fn register_fair(
 
 #[derive(Deserialize, Clone)]
 pub struct GetFairByOwnerQuery {
+    #[serde(rename = "ownerId")]
     owner_id: String,
 }
 
