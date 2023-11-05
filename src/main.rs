@@ -1,9 +1,10 @@
-use axum::{Router, routing::post, Server};
-use axum::http::HeaderValue;
+use axum::http::{HeaderValue, Method};
 use axum::routing::get;
+use axum::{routing::post, Router, Server};
 use mongodb::{Client, Database};
 use std::env;
-use tower_http::{compression, cors, trace};
+use tower::ServiceBuilder;
+use tower_http::{compression, cors::CorsLayer, trace};
 use tracing::Level;
 
 #[path = "routes/auth.rs"]
@@ -50,16 +51,21 @@ async fn main() {
         .route("/fairs/register", post(fairs::register_fair))
         .route("/fairs", get(fairs::get_all))
         //middleware
-        .layer(trace::TraceLayer::new_for_http())
-        .layer(compression::CompressionLayer::new())
         .layer(
-            cors::CorsLayer::new().allow_origin(match env::var_os("ORIGIN") {
-                Some(val) => val.into_string().unwrap().parse::<HeaderValue>().unwrap(),
-                None => "http://localhost:3000"
-                    .to_string()
-                    .parse::<HeaderValue>()
-                    .unwrap(),
-            }),
+            ServiceBuilder::new()
+                .layer(
+                    CorsLayer::new()
+                        .allow_methods([Method::GET, Method::POST])
+                        .allow_origin(match env::var_os("ORIGIN") {
+                            Some(val) => val.into_string().unwrap().parse::<HeaderValue>().unwrap(),
+                            None => "http://localhost:3000"
+                                .to_string()
+                                .parse::<HeaderValue>()
+                                .unwrap(),
+                        }),
+                )
+                .layer(trace::TraceLayer::new_for_http())
+                .layer(compression::CompressionLayer::new()),
         )
         .with_state(state);
 
