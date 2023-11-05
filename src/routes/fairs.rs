@@ -1,19 +1,19 @@
 use axum::extract::{Query, State};
 use axum::http::{HeaderMap, StatusCode};
-use axum::Json;
 use axum::response::{IntoResponse, Response};
+use axum::Json;
 use futures::stream::StreamExt;
 use mongodb::bson::{doc, oid};
 use serde::Deserialize;
 use serde_json::json;
 use validator::Validate;
 
-use crate::AppState;
 use crate::fairs::create::{Fair, FairDay, FairEvent};
 use crate::fairs::get::UserSearchMode;
 use crate::fairs::responses::CustomResponses::{
     InternalServerError, InvalidApiKey, InvalidPermissions,
 };
+use crate::AppState;
 
 #[path = "../lib/create.rs"]
 mod create;
@@ -98,7 +98,7 @@ pub async fn register_fair(
 
 #[derive(Deserialize, Clone)]
 pub struct GetFairByOwnerQuery {
-    id: String,
+    owner_id: String,
 }
 
 pub async fn get_all(
@@ -107,14 +107,14 @@ pub async fn get_all(
 ) -> Response {
     let collection = state.db.collection::<Fair>("fairs");
     let mut fairs: Vec<Fair> = Vec::new();
-    if possible_owner.id == "none" {
+    if possible_owner.owner_id == "none" {
         let mut cursor = collection.find(None, None).await.unwrap();
         while let Some(fair) = cursor.next().await {
             fairs.push(fair.unwrap());
         }
     } else {
         let mut cursor = collection
-            .find(doc! { "organizerId": possible_owner.id }, None)
+            .find(doc! { "organizerId": possible_owner.owner_id }, None)
             .await
             .unwrap();
         while let Some(fair) = cursor.next().await {
