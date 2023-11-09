@@ -99,7 +99,7 @@ pub async fn register_fair(
 #[derive(Deserialize, Clone)]
 pub struct GetFairByOwnerQuery {
     #[serde(rename = "ownerId")]
-    owner_id: String,
+    id: Option<String>,
 }
 
 pub async fn get_all(
@@ -108,19 +108,23 @@ pub async fn get_all(
 ) -> Response {
     let collection = state.db.collection::<Fair>("fairs");
     let mut fairs: Vec<Fair> = Vec::new();
-    if possible_owner.owner_id == "none" {
-        let mut cursor = collection.find(None, None).await.unwrap();
-        while let Some(fair) = cursor.next().await {
-            fairs.push(fair.unwrap());
+    match possible_owner.id {
+        Some(id) => {
+            let mut cursor = collection
+                .find(doc! { "organizerId": id }, None)
+                .await
+                .unwrap();
+            while let Some(fair) = cursor.next().await {
+                fairs.push(fair.unwrap());
+            }
         }
-    } else {
-        let mut cursor = collection
-            .find(doc! { "organizerId": possible_owner.owner_id }, None)
-            .await
-            .unwrap();
-        while let Some(fair) = cursor.next().await {
-            fairs.push(fair.unwrap());
+        None => {
+            let mut cursor = collection.find(None, None).await.unwrap();
+            while let Some(fair) = cursor.next().await {
+                fairs.push(fair.unwrap());
+            }
         }
+
     }
 
     (StatusCode::OK, Json(json!({ "fairs": fairs }))).into_response()

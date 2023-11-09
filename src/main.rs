@@ -3,7 +3,6 @@ use axum::routing::get;
 use axum::{routing::post, Router, Server};
 use mongodb::{Client, Database};
 use std::env;
-use tower::ServiceBuilder;
 use tower_http::{compression, cors::CorsLayer, trace};
 use tracing::Level;
 
@@ -52,21 +51,18 @@ async fn main() {
         .route("/fairs", get(fairs::get_all))
         //middleware
         .layer(
-            ServiceBuilder::new()
-                .layer(
-                    CorsLayer::new()
-                        .allow_methods([Method::GET, Method::POST])
-                        .allow_origin(match env::var_os("ORIGIN") {
-                            Some(val) => val.into_string().unwrap().parse::<HeaderValue>().unwrap(),
-                            None => "http://localhost:3000"
-                                .to_string()
-                                .parse::<HeaderValue>()
-                                .unwrap(),
-                        }),
-                )
-                .layer(trace::TraceLayer::new_for_http())
-                .layer(compression::CompressionLayer::new()),
+            CorsLayer::new()
+                .allow_methods([Method::GET, Method::POST])
+                .allow_origin(match env::var_os("ORIGIN") {
+                    Some(val) => val.into_string().unwrap().parse::<HeaderValue>().unwrap(),
+                    None => "http://localhost:3000"
+                        .to_string()
+                        .parse::<HeaderValue>()
+                        .unwrap(),
+                }),
         )
+        .layer(trace::TraceLayer::new_for_http())
+        .layer(compression::CompressionLayer::new())
         .with_state(state);
 
     let port = match env::var_os("PORT") {
