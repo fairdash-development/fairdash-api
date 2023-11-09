@@ -43,7 +43,7 @@ pub struct RegisterRequest {
 #[derive(Deserialize)]
 pub struct RegisterQuery {
     #[serde(rename = "fairOrganizer")]
-    fair_organizer: bool,
+    fair_organizer: Option<bool>,
 }
 
 pub async fn register(
@@ -85,10 +85,9 @@ pub async fn register(
             last_name: request.last_name,
             phone_number: request.phone_number,
             password: bcrypt::hash::<String>(request.password, bcrypt::DEFAULT_COST).unwrap(),
-            role: if query.fair_organizer {
-                "organizer".to_string()
-            } else {
-                "user".to_string()
+            role: match query.fair_organizer {
+                Some(true) => "organizer".to_string(),
+                _ => "user".to_string(),
             },
             created_at: chrono::Utc::now(),
             updated_at: chrono::Utc::now(),
