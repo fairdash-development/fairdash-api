@@ -1,6 +1,6 @@
 use axum::http::StatusCode;
-use axum::Json;
 use axum::response::{IntoResponse, Response};
+use axum::Json;
 use serde_json::json;
 
 #[derive(Debug)]
@@ -45,15 +45,15 @@ impl IntoResponse for CustomResponses {
                 Json(json!({ "error": "Email already in use" })),
             ),
             CustomResponses::InvalidEmailOrPassword => (
-                StatusCode::BAD_REQUEST,
+                StatusCode::UNAUTHORIZED,
                 Json(json!({ "error": "Invalid email or password" })),
             ),
             CustomResponses::InvalidApiKey => (
-                StatusCode::BAD_REQUEST,
+                StatusCode::UNAUTHORIZED,
                 Json(json!({ "error": "Invalid API key" })),
             ),
             CustomResponses::InvalidPermissions => (
-                StatusCode::BAD_REQUEST,
+                StatusCode::UNAUTHORIZED,
                 Json(json!({ "error": "Invalid permissions" })),
             ),
             CustomResponses::InvalidRequest => (

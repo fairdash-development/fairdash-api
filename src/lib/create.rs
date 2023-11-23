@@ -55,11 +55,9 @@ pub struct FairEvent {
     pub id: oid::ObjectId,
     #[serde(rename = "fairDayId")]
     pub fair_day_id: oid::ObjectId,
-    #[serde(rename = "name")]
     pub name: String,
-    #[serde(rename = "description")]
+    pub date: String,
     pub description: String,
-    #[serde(rename = "location")]
     pub location: String,
     #[serde(rename = "startTime")]
     pub start_time: String,
@@ -94,9 +92,19 @@ pub struct Fair {
 pub async fn fair(
     db: &Database,
     fair: Fair,
-    fair_days: Vec<FairDay>,
-    fair_events: Vec<FairEvent>,
+    mut fair_days: Vec<FairDay>,
+    mut fair_events: Vec<FairEvent>,
 ) -> Result<String, mongodb::error::Error> {
+    for day in fair_days.iter_mut() {
+        day.id = oid::ObjectId::new();
+        day.fair_id = fair.id.clone().to_string();
+    }
+
+    for event in fair_events.iter_mut() {
+        event.id = oid::ObjectId::new();
+        event.fair_day_id = fair_days[0].id.clone();
+    }
+
     let collection = db.collection::<FairDay>("fairDays");
     match collection.insert_many(fair_days, None).await {
         Ok(..) => (),

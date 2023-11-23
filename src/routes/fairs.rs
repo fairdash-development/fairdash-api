@@ -8,7 +8,7 @@ use serde::Deserialize;
 use serde_json::json;
 use validator::Validate;
 
-use crate::fairs::create::{Fair, FairDay, FairEvent};
+use crate::fairs::create::Fair;
 use crate::fairs::get::UserSearchMode;
 use crate::fairs::responses::CustomResponses::{
     InternalServerError, InvalidApiKey, InvalidPermissions,
@@ -21,6 +21,39 @@ mod create;
 mod get;
 #[path = "../lib/responses.rs"]
 mod responses;
+
+#[derive(Deserialize, Clone, Debug)]
+pub struct RegisterFairDay {
+    pub date: String,
+    #[serde(rename = "createdAt")]
+    pub created_at: String,
+    #[serde(rename = "updatedAt")]
+    pub updated_at: String,
+    #[serde(rename = "openingTime")]
+    pub opening_time: String,
+    #[serde(rename = "closingTime")]
+    pub closing_time: String,
+}
+
+#[derive(Deserialize, Clone, Debug)]
+pub struct RegisterFairEvent {
+    #[serde(rename = "fairDayId")]
+    pub fair_day_id: oid::ObjectId,
+    #[serde(rename = "name")]
+    pub name: String,
+    #[serde(rename = "description")]
+    pub description: String,
+    #[serde(rename = "location")]
+    pub location: String,
+    #[serde(rename = "startTime")]
+    pub start_time: String,
+    #[serde(rename = "endTime")]
+    pub end_time: String,
+    #[serde(rename = "createdAt")]
+    pub created_at: String,
+    #[serde(rename = "updatedAt")]
+    pub updated_at: String,
+}
 
 #[derive(Deserialize, Validate, Clone)]
 pub struct RegisterFairRequest {
@@ -35,9 +68,9 @@ pub struct RegisterFairRequest {
     #[serde(rename = "updatedAt")]
     pub updated_at: String,
     #[serde(rename = "fairDays")]
-    pub fair_days: Vec<FairDay>,
+    pub fair_days: Vec<RegisterFairDay>,
     #[serde(rename = "fairEvents")]
-    pub fair_events: Vec<FairEvent>,
+    pub fair_events: Vec<RegisterFairEvent>,
     #[serde(rename = "camperSpotMap")]
     pub camper_spot_map: String,
 }
@@ -77,8 +110,8 @@ pub async fn register_fair(
             organizer_id: user.unwrap().id.clone().to_string(),
             camper_spot_map: request.camper_spot_map,
         },
-        request.fair_days,
-        request.fair_events,
+        request.fair_days.into(),
+        request.fair_events.into(),
     )
     .await;
 
@@ -124,7 +157,6 @@ pub async fn get_all(
                 fairs.push(fair.unwrap());
             }
         }
-
     }
 
     (StatusCode::OK, Json(json!({ "fairs": fairs }))).into_response()
