@@ -3,13 +3,11 @@ use axum::routing::get;
 use axum::{routing::post, Router, Server};
 use mongodb::{Client, Database};
 use std::env;
-use tower_http::{compression, cors::CorsLayer, trace};
+use tower_http::{cors::CorsLayer, trace};
 use tracing::Level;
 
 #[path = "routes/auth.rs"]
 mod auth;
-#[path = "routes/fairs.rs"]
-mod fairs;
 #[path = "routes/users.rs"]
 mod users;
 
@@ -46,9 +44,6 @@ async fn main() {
         .route("/users/id/:user_id", get(users::get_by_id))
         .route("/users/email/:email", get(users::get_by_email))
         .route("/users/apikey", get(users::get_by_apikey))
-        //fairs
-        .route("/fairs/register", post(fairs::register_fair))
-        .route("/fairs", get(fairs::get_all))
         //middleware
         .layer(
             CorsLayer::new()
@@ -62,7 +57,6 @@ async fn main() {
                 }),
         )
         .layer(trace::TraceLayer::new_for_http())
-        .layer(compression::CompressionLayer::new())
         .with_state(state);
 
     let port = match env::var_os("PORT") {
