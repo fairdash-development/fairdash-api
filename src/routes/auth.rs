@@ -1,20 +1,21 @@
-use axum::{extract::State, Json};
-use axum::extract::Query;
-use axum::http::StatusCode;
-use axum::response::{IntoResponse, Response};
+use axum::{
+    extract::{Query, State},
+    http::StatusCode,
+    response::{IntoResponse, Response},
+    Json,
+};
 use create::User;
-use mongodb::bson::{doc, oid, uuid::Uuid};
 use passablewords::{check_password, PasswordError};
 use serde::Deserialize;
 use serde_json::json;
 use validator::Validate;
 
-use crate::AppState;
 use crate::auth::get::UserSearchMode;
 use crate::auth::responses::CustomResponses::{
-    EmailAlreadyInUse, InternalServerError, InvalidEmailOrPassword, PasswordsDontMatch,
-    PasswordTooCommon, PasswordTooShort, PasswordTooSimple,
+    EmailAlreadyInUse, InternalServerError, InvalidEmailOrPassword, PasswordTooCommon,
+    PasswordTooShort, PasswordTooSimple, PasswordsDontMatch,
 };
+use crate::AppState;
 
 #[path = "../lib/create.rs"]
 pub mod create;

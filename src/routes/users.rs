@@ -1,16 +1,12 @@
-use axum::extract::{Path, Query, State};
-use axum::http::StatusCode;
-use axum::Json;
-use axum::response::{IntoResponse, Response};
-use mongodb::bson::oid::ObjectId;
+use axum::{Json, response::{IntoResponse, Response}, http::StatusCode, extract::{Path, Query, State}};
 use serde::Deserialize;
 use serde_json::json;
 
-use crate::AppState;
 use crate::users::{
     get::UserSearchMode,
     responses::CustomResponses::{InvalidApiKey, InvalidRequest},
 };
+use crate::AppState;
 
 #[path = "../lib/get.rs"]
 mod get;
@@ -38,7 +34,7 @@ pub async fn get_by_apikey(
     (StatusCode::OK, Json(json!({ "user": user.unwrap() }))).into_response()
 }
 
-pub async fn get_by_id(State(state): State<AppState>, Path(user_id): Path<ObjectId>) -> Response {
+pub async fn get_by_id(State(state): State<AppState>, Path(user_id): Path<String>) -> Response {
     let user = get::user(&state.db, user_id.to_string(), UserSearchMode::Id).await;
     if user.is_err() {
         return InvalidRequest.into_response();

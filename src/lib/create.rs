@@ -1,12 +1,10 @@
 use chrono::{DateTime, Utc};
-use mongodb::bson::oid;
-use mongodb::Database;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct User {
     #[serde(rename = "_id")]
-    pub id: oid::ObjectId,
+    pub id: String,
     pub apikey: String,
     pub email: String,
     #[serde(rename = "firstName")]
@@ -34,7 +32,7 @@ pub async fn user(db: &Database, user: User) -> Result<String, mongodb::error::E
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct FairDay {
     #[serde(rename = "_id")]
-    pub id: oid::ObjectId,
+    pub id: String,
     #[serde(rename = "fairId")]
     pub fair_id: String,
     #[serde(rename = "date")]
@@ -52,9 +50,9 @@ pub struct FairDay {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct FairEvent {
     #[serde(rename = "_id")]
-    pub id: oid::ObjectId,
+    pub id: String,
     #[serde(rename = "fairDayId")]
-    pub fair_day_id: oid::ObjectId,
+    pub fair_day_id: String,
     pub name: String,
     pub date: String,
     pub description: String,
@@ -72,7 +70,7 @@ pub struct FairEvent {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Fair {
     #[serde(rename = "_id")]
-    pub id: oid::ObjectId,
+    pub id: String,
     pub name: String,
     pub location: String,
     #[serde(rename = "startDate")]

@@ -1,7 +1,9 @@
-use axum::http::{HeaderValue, Method};
-use axum::routing::get;
-use axum::{routing::post, Router, Server};
-use mongodb::{Client, Database};
+use axum::{
+    http::{HeaderValue, Method},
+    routing::{get, post},
+    Router,
+};
+use sqlx::{postgres::PgPoolOptions, Pool};
 use std::env;
 use tower_http::{cors::CorsLayer, trace};
 use tracing::Level;
@@ -13,17 +15,17 @@ mod users;
 
 #[derive(Clone)]
 pub struct AppState {
-    db: Database,
+    db: Pool<sqlx::Postgres>,
 }
 
 #[tokio::main]
 async fn main() {
     let state = AppState {
-        db: Client::with_uri_str(env::var("DATABASE_URL").expect("DATABASE_URL not set"))
+        db: PgPoolOptions::new()
+            .max_connections(5)
+            .connect(&env::var_os("DATABASE_URL").unwrap().into_string().unwrap())
             .await
-            .expect("Failed to connect to database")
-            .database("test")
-            .clone(),
+            .unwrap(),
     };
 
     tracing_subscriber::fmt()
@@ -65,8 +67,6 @@ async fn main() {
     };
     let ip = format!("0.0.0.0:{port}");
     println!("Starting server on {ip}");
-    Server::bind(&ip.parse().unwrap())
-        .serve(app.into_make_service())
-        .await
-        .unwrap();
+    let listener = tokio::net::TcpListener::bind(ip).await.unwrap();
+    axum::serve(listener, app).await.unwrap();
 }
